@@ -1,9 +1,12 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Link } from "wouter";
+import { Music, Volume2, VolumeX, Play } from "lucide-react";
 
 const Home = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [isPlayingMusic, setIsPlayingMusic] = useState(false);
 
   const toggleSound = () => {
     if (videoRef.current) {
@@ -12,8 +15,26 @@ const Home = () => {
     }
   };
 
+  const toggleMusic = () => {
+    if (audioRef.current) {
+      if (isPlayingMusic) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(e => console.log("Audio play failed:", e));
+      }
+      setIsPlayingMusic(!isPlayingMusic);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      {/* Audio element for background music (New World Symphony - Largo) */}
+      <audio 
+        ref={audioRef} 
+        loop 
+        src="https://www.mfiles.co.uk/mp3-downloads/dvorak-new-world-symphony-2nd-movement.mp3"
+      />
+
       {/* --- HERO SEKCE S VIDEEM --- */}
       <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
         <video
@@ -24,68 +45,73 @@ const Home = () => {
           playsInline
           className="absolute z-0 w-auto min-w-full min-h-full max-w-none object-cover"
         >
-          {/* Soubor musí být ve složce 'public' pod tímto názvem */}
-          <source src="/Nahrání_videa_a_jeho_dostupnost.mp4" type="video/mp4" />
+          <source src="/lipno-intro.mp4" type="video/mp4" />
         </video>
 
-        <div className="absolute inset-0 bg-black/30 z-10" />
+        <div className="absolute inset-0 bg-black/40 z-10" />
 
         <div className="relative z-20 text-center text-white px-4">
-          <h1 className="text-5xl md:text-7xl font-bold mb-4 drop-shadow-2xl">
-            Dětství patří přírodě
+          <h1 className="text-5xl md:text-8xl font-bold mb-6 drop-shadow-2xl tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+            Lojzovy Paseky
           </h1>
-          <p className="text-xl md:text-2xl mb-8 drop-shadow-lg font-light">
-            Moderní bungalovy a rodinné zázemí na Lipně
+          <p className="text-xl md:text-3xl mb-10 drop-shadow-lg font-light italic">
+            "Kde se dětství potkává s přírodou..."
           </p>
-          <div className="flex flex-col md:flex-row gap-4 justify-center">
+          <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
             <Link href="/booking">
-              <a className="bg-green-600 hover:bg-green-700 text-white px-10 py-4 rounded-full font-bold transition-all shadow-lg">
-                Nabídka pronájmu
+              <a className="bg-green-600 hover:bg-green-700 text-white px-12 py-5 rounded-full font-bold transition-all shadow-2xl transform hover:scale-105">
+                Rezervovat pobyt
               </a>
             </Link>
-            <Link href="/gallery">
-              <a className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 px-10 py-4 rounded-full font-bold transition-all shadow-lg">
-                Prohlédnout galerii
-              </a>
-            </Link>
+            <button 
+              onClick={toggleMusic}
+              className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/40 px-8 py-4 rounded-full font-bold transition-all shadow-lg"
+            >
+              {isPlayingMusic ? <Volume2 size={20} /> : <Music size={20} />}
+              {isPlayingMusic ? "Zastavit hudbu" : "Pustit atmosféru"}
+            </button>
           </div>
         </div>
 
-        {/* Tlačítko pro zvuk vpravo dole */}
+        {/* Tlačítko pro zvuk videa vpravo dole */}
         <button
           onClick={toggleSound}
           className="absolute bottom-10 right-10 z-30 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/40 text-white p-4 rounded-full transition-all"
+          title={isMuted ? "Zapnout zvuk videa" : "Vypnout zvuk videa"}
         >
-          {isMuted ? "Zapnout zvuk 🔇" : "Vypnout zvuk 🔊"}
+          {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
         </button>
       </section>
 
       {/* --- INFORMAČNÍ SEKCE --- */}
-      <section className="py-20 px-6 max-w-4xl mx-auto text-center">
-        <h2 className="text-3xl font-bold mb-6 text-green-800">Specialista na Lojzovy Paseky</h2>
-        <p className="text-gray-600 text-lg leading-relaxed">
-          Vytváříme moderní zázemí pro rodiny s důrazem na sepětí s přírodou. 
-          Spojení špičkového designu, komfortu a klidu Lipenské přehrady je cesta k nezapomenutelným zážitkům.
+      <section className="py-24 px-6 max-w-5xl mx-auto text-center">
+        <h2 className="text-4xl font-bold mb-8 text-green-900" style={{ fontFamily: "'Playfair Display', serif" }}>
+          Symfonie klidu na břehu Lipna
+        </h2>
+        <p className="text-gray-600 text-xl leading-relaxed font-light">
+          Vytváříme prostor, kde se čas zastaví. Naše moderní bungalovy v Lojzových Pasekách 
+          jsou navrženy tak, aby splynuly s okolní přírodou a poskytly vaší rodině 
+          dokonalé zázemí pro společné objevování krás Šumavy.
         </p>
       </section>
 
       {/* --- SEKCE S VÝHODAMI --- */}
-      <section className="py-20 bg-gray-50 px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
-          <div className="text-center">
-            <div className="text-4xl mb-4">🌲</div>
-            <h3 className="text-xl font-bold mb-2">Čistá příroda</h3>
-            <p className="text-gray-600">Bydlení přímo u lesa a jen pár kroků od břehu Lipna.</p>
+      <section className="py-24 bg-[#fdfbf7] px-6 border-y border-gray-100">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-16">
+          <div className="text-center group">
+            <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform">🌲</div>
+            <h3 className="text-2xl font-bold mb-4 text-green-900">Nedotčená příroda</h3>
+            <p className="text-gray-600 text-lg">Probouzejte se za zpěvu ptáků a šumění lesa přímo u vašich dveří.</p>
           </div>
-          <div className="text-center">
-            <div className="text-4xl mb-4">🏡</div>
-            <h3 className="text-xl font-bold mb-2">Moderní bungalovy</h3>
-            <p className="text-gray-600">Špičkové vybavení a design, který vás nadchne svou jednoduchostí.</p>
+          <div className="text-center group">
+            <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform">🏡</div>
+            <h3 className="text-2xl font-bold mb-4 text-green-900">Designový komfort</h3>
+            <p className="text-gray-600 text-lg">Moderní architektura, která ctí tradici a nabízí veškeré pohodlí 21. století.</p>
           </div>
-          <div className="text-center">
-            <div className="text-4xl mb-4">👨‍👩‍👧‍👦</div>
-            <h3 className="text-xl font-bold mb-2">Rodinné zázemí</h3>
-            <p className="text-gray-600">Ideální místo pro děti, kde mohou bezpečně objevovat svět.</p>
+          <div className="text-center group">
+            <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform">✨</div>
+            <h3 className="text-2xl font-bold mb-4 text-green-900">Unikátní atmosféra</h3>
+            <p className="text-gray-600 text-lg">Místo, kde každá vteřina hraje tu nejkrásnější melodii vašeho života.</p>
           </div>
         </div>
       </section>
