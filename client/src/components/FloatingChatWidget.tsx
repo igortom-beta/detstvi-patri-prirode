@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, X, MessageCircle } from 'lucide-react';
+import { Send, X, MessageCircle, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -14,8 +14,11 @@ export function FloatingChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [detectedLanguage, setDetectedLanguage] = useState('cs');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -24,6 +27,59 @@ export function FloatingChatWidget() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+
+      recognitionRef.current.onresult = (event: any) => {
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            setInputValue(prev => prev + event.results[i][0].transcript);
+            resetSilenceTimer();
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  const resetSilenceTimer = () => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = setTimeout(() => {
+      if (inputValue.trim()) {
+        handleSendMessage();
+      }
+    }, 7000); // 7 seconds of silence
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    } else {
+      setInputValue('');
+      recognitionRef.current?.start();
+      setIsListening(true);
+      resetSilenceTimer();
+    }
+  };
 
   const detectLanguage = (text: string): string => {
     const languageKeywords: Record<string, string[]> = {
@@ -48,8 +104,8 @@ export function FloatingChatWidget() {
     return 'cs';
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!inputValue.trim()) return;
 
     const userMessage = inputValue;
@@ -59,6 +115,12 @@ export function FloatingChatWidget() {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setInputValue('');
     setIsLoading(true);
+    
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
     // Simulated AI response
     setTimeout(() => {
@@ -102,9 +164,18 @@ export function FloatingChatWidget() {
 
       {isOpen && (
         <Card className="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-24px)] h-96 max-h-[calc(100vh-200px)] flex flex-col bg-white border-2 border-[#1a3a5f] shadow-2xl rounded-lg z-50">
-          <div className="bg-[#1a3a5f] text-white p-4 rounded-t-lg">
-            <h3 className="font-bold text-lg">Lojzovy Paseky Assistant</h3>
-            <p className="text-sm text-gray-200">Modern bungalows at Lipno</p>
+          <div className="bg-[#1a3a5f] text-white p-4 rounded-t-lg flex justify-between items-center">
+            <div>
+              <h3 className="font-bold text-lg">Lojzovy Paseky Assistant</h3>
+              <p className="text-sm text-gray-200">Modern bungalows at Lipno</p>
+            </div>
+            <button 
+              onClick={toggleListening}
+              className={`p-2 rounded-full transition-all ${isListening ? 'bg-green-500 animate-pulse' : 'bg-white/10 hover:bg-white/20'}`}
+              title={isListening ? "Poslouchám... (automatické odeslání po 7s ticha)" : "Zapnout hlasový vstup"}
+            >
+              {isListening ? <Mic size={20} /> : <MicOff size={20} />}
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
@@ -140,14 +211,19 @@ export function FloatingChatWidget() {
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 border-[#1a3a5f]"
+              placeholder={isListening ? "Poslouchám..." : "Napište zprávu..."}
+              className={`flex-1 border-[#1a3a5f] ${isListening ? 'border-green-500 ring-1 ring-green-500' : ''}`}
               disabled={isLoading}
             />
             <Button type="submit" disabled={isLoading || !inputValue.trim()} className="bg-[#1a3a5f] hover:bg-[#0f2540] text-white">
               <Send size={18} />
             </Button>
           </form>
+          {isListening && (
+            <div className="px-4 pb-2 text-[10px] text-green-600 font-medium animate-pulse">
+              🎤 Poslouchám... Zpráva se odešle automaticky po 7 sekundách ticha nebo stisknutím Enter.
+            </div>
+          )}
         </Card>
       )}
     </>
