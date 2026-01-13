@@ -112,7 +112,8 @@ export function FloatingChatWidget() {
     const language = detectLanguage(userMessage);
     setDetectedLanguage(language);
     
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    const newMessages: Message[] = [...messages, { role: 'user', content: userMessage }];
+    setMessages(newMessages);
     setInputValue('');
     setIsLoading(true);
     
@@ -122,16 +123,37 @@ export function FloatingChatWidget() {
     }
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
-    // Simulated AI response
-    setTimeout(() => {
-      const responses: Record<string, string> = {
-        cs: "Děkujeme za váš dotaz! Naši asistenti se vám brzy ozvou ohledně rezervace v Lojzových Pasekách.",
-        de: "Vielen Dank für Ihre Anfrage! Unsere Assistenten werden sich in Kürze bezüglich Ihrer Reservierung in Lojzovy Paseky bei Ihnen melden.",
-        en: "Thank you for your inquiry! Our assistants will get back to you shortly regarding your reservation in Lojzovy Paseky.",
-      };
-      setMessages(prev => [...prev, { role: 'assistant', content: responses[language] || responses.cs }]);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: newMessages.map(m => ({
+            role: m.role,
+            content: m.content
+          }))
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('API request failed');
+      }
+
+      const data = await response.json();
+      const assistantMessage = data.choices[0].message.content;
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+    } catch (error) {
+      console.error('Error calling AI:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Omlouvám se, došlo k chybě při spojení s asistentem. Zkuste to prosím později.' 
+      }]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const getWelcomeMessage = (): string => {
