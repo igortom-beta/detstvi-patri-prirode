@@ -158,7 +158,7 @@ export function FloatingChatWidget() {
 
   const getWelcomeMessage = (): string => {
     const messages: Record<string, string> = {
-      cs: 'Vítejte v Lojzových Pasekách! 👋 Jak vám mohu pomoci?',
+      cs: 'Vítejte v Lojzových Pasekách! (Aktualizováno) 👋 Jak vám mohu pomoci?',
       de: 'Willkommen in Lojzovy Paseky! 👋 Wie kann ich dir helfen?',
       en: 'Welcome to Lojzovy Paseky! 👋 How can I help you?',
     };
